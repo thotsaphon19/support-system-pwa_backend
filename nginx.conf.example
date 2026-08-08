@@ -1,0 +1,123 @@
+# nginx.conf.example — reference config for putting the whole system behind one
+# domain with HTTPS + security headers. Adjust paths/domains, then use with certbot
+# for free TLS certs.
+#
+#   sudo apt install nginx certbot python3-certbot-nginx
+#   sudo cp nginx.conf.example /etc/nginx/sites-available/support-system
+#   sudo ln -s /etc/nginx/sites-available/support-system /etc/nginx/sites-enabled/
+#   sudo certbot --nginx -d app.yourdomain.com -d admin.yourdomain.com -d api.yourdomain.com
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Run `certbot` AFTER enabling this config — it edits these server blocks in place to
+# add the `listen 443 ssl` directives, certificate paths, and an HTTP→HTTPS redirect.
+#
+# This setup keeps all three parts on the SAME parent domain (yourdomain.com) so that
+# the customer and admin PWAs can share settings via localStorage as described in the
+# README. If you prefer fully separate domains, that's fine too — just update
+# customer/config.js and admin/config.js to point at your API's real URL, and set
+# CORS_ORIGINS in the backend's .env accordingly.
+
+# Rate limit zone shared by both PWA server blocks below — a second layer of defense
+# on top of the app-level rate limiting already built into the backend.
+limit_req_zone $binary_remote_addr zone=pwa_general:10m rate=30r/s;
+
+# ---------- Customer PWA ----------
+server {
+    listen 80;
+    server_name app.yourdomain.com;
+    root /var/www/support-system/customer;
+    index index.html;
+
+    limit_req zone=pwa_general burst=50 nodelay;
+
+    # Security headers (defense-in-depth alongside the backend's own Helmet headers).
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=()" always;
+    # Enabled automatically once certbot adds the HTTPS server block above this one:
+    # add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # The service worker, the HTML that bootstraps it, and every file the app-shell
+    # loads directly (app.js, style.css, config.js, manifest.json) must never be
+    # cached long-term by the browser's own HTTP cache — otherwise a fresh deploy can
+    # sit behind a stale copy indefinitely, even though the service worker itself
+    # (see customer/sw.js) is doing the right thing with network-first fetching.
+    # This is the #1 cause of "I have to manually clear my cache after every deploy".
+    location ~ ^/(sw\.js|index\.html|app\.js|style\.css|config\.js|manifest\.json)$ {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+    location = / {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+    # Icons/images never change once published (a new upload gets a new URL), so
+    # these are safe — and good for performance — to cache for a long time.
+    location /icons/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Block access to anything that shouldn't be served (dotfiles, source maps in prod, etc.)
+    location ~ /\. { deny all; }
+}
+
+# ---------- Admin PWA ----------
+server {
+    listen 80;
+    server_name admin.yourdomain.com;
+    root /var/www/support-system/admin;
+    index index.html;
+
+    limit_req zone=pwa_general burst=50 nodelay;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=()" always;
+    # add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~ ^/(sw\.js|index\.html|app\.js|avatar-renderer\.js|style\.css|config\.js|manifest\.json)$ {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+    location = / {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+    location /icons/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location ~ /\. { deny all; }
+
+    # Optional but recommended: restrict the admin console to known IPs/VPN if your
+    # team connects from a fixed location. Uncomment and adjust:
+    # allow 203.0.113.0/24;
+    # deny all;
+}
+
+# ---------- Backend API + Socket.io ----------
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;      # required for Socket.io websockets
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Sane timeouts for long-lived Socket.io/WebSocket connections.
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}

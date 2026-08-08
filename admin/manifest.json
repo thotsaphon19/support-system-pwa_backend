@@ -1,0 +1,16 @@
+{
+  "name": "Lazmall - Admin Console",
+  "short_name": "Lazmall Admin",
+  "description": "ระบบบริหารจัดการร้านค้าและฝ่ายบริการลูกค้า Lazmall",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F4FC",
+  "theme_color": "#4C2FCE",
+  "lang": "th",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

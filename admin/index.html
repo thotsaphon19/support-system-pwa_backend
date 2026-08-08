@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lazmall | Admin Console</title>
+<meta name="theme-color" content="#4C2FCE">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" id="app-favicon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lazmall Admin">
+<link rel="stylesheet" href="style.css?v=20260808h">
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="logo-big">🛍️</div>
+    <h1>Lazmall Admin</h1>
+    <p>เข้าสู่ระบบบริหารจัดการ</p>
+    <div class="field">
+      <label>ชื่อผู้ใช้</label>
+      <input type="text" id="al-user" value="admin">
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="al-pass" value="admin1234">
+    </div>
+    <div id="al-error" style="display:none;color:var(--danger);font-size:12px;font-weight:600;margin:-4px 0 12px;text-align:left"></div>
+    <button class="btn" style="width:100%;padding:12px" onclick="adminLogin()">เข้าสู่ระบบ</button>
+    <p style="color:var(--ink-400);font-size:11px;margin-top:14px">บัญชีทดสอบ: admin / admin1234</p>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="admin-app">
+
+  <!-- Incoming call banner -->
+  <div class="incoming-call-banner" id="incoming-call-banner" style="display:none">
+    <div class="icb-info">
+      <div class="icb-avatar">📞</div>
+      <div>
+        <div class="icb-name" id="icb-customer-name">ลูกค้า</div>
+        <div class="icb-sub">กำลังโทรเข้า • วิดีโอคอล</div>
+      </div>
+    </div>
+    <div class="icb-actions">
+      <button class="icb-btn reject" onclick="rejectIncomingCall()">✕ ปฏิเสธ</button>
+      <button class="icb-btn accept" onclick="acceptIncomingCall()">📞 รับสาย</button>
+    </div>
+  </div>
+
+  <!-- Active call overlay -->
+  <div class="admin-call-overlay" id="admin-call-overlay" style="display:none">
+    <video id="admin-raw-camera-source" autoplay playsinline muted style="display:none"></video>
+    <div class="acall-stage">
+      <div class="acall-tag"><span class="dot"></span> <span id="acall-tag-text">สายกำลังใช้งาน</span></div>
+      <div class="acall-remote-frame">
+        <video id="acall-remote-video" autoplay playsinline></video>
+      </div>
+      <video id="acall-local-video" class="acall-local-pip" autoplay playsinline muted></video>
+      <div class="acall-name" id="acall-customer-name">ลูกค้า</div>
+      <div class="acall-timer" id="acall-timer">00:00</div>
+    </div>
+    <div class="acall-controls">
+      <button class="acall-ctrl-btn" id="acall-mute-btn" onclick="toggleAdminMute()">🎙️</button>
+      <button class="acall-ctrl-btn end" onclick="endAdminCall()">📴</button>
+      <button class="acall-ctrl-btn" id="acall-mode-btn" onclick="toggleAdminCallVideoMode()" title="สลับหน้าจริง/AI Avatar สำหรับสายนี้">🤖</button>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">🛍️</div>
+      <div>Lazmall<small>Admin Console</small></div>
+    </div>
+    <nav id="side-nav">
+      <div class="side-link" data-page="dashboard"><span class="s-ico">🏠</span>หน้าหลัก</div>
+      <div class="side-link" data-page="inbox"><span class="s-ico">💬</span>กล่องข้อความ</div>
+      <div class="side-link" data-page="products"><span class="s-ico">🛍️</span>จัดการสินค้า</div>
+      <div class="side-link" data-page="categories"><span class="s-ico">🗂️</span>หมวดหมู่สินค้า</div>
+      <div class="side-link" data-page="storeOrders"><span class="s-ico">📦</span>คำสั่งซื้อ</div>
+      <div class="side-link" data-page="reviews"><span class="s-ico">⭐</span>รีวิวสินค้า</div>
+      <div class="side-link" data-page="marketing"><span class="s-ico">🎯</span>การตลาด</div>
+      <div class="side-link" data-page="tickets"><span class="s-ico">📋</span>รายการแจ้งบริการ</div>
+      <div class="side-link" data-page="tasks"><span class="s-ico">✅</span>จัดการงาน</div>
+      <div class="side-link" data-page="customers"><span class="s-ico">👥</span>ลูกค้า</div>
+      <div class="side-link" data-page="finance"><span class="s-ico">💰</span>บริหารการเงิน</div>
+      <div class="side-link" data-page="channels"><span class="s-ico">📡</span>ช่องทางการติดต่อ</div>
+      <div class="side-link" data-page="kb"><span class="s-ico">📚</span>คลังความรู้</div>
+      <div class="side-link" data-page="reports"><span class="s-ico">📊</span>รายงานและสถิติ</div>
+      <div class="side-link" data-page="settings"><span class="s-ico">⚙️</span>ตั้งค่า</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="f-ico">🤖</div>
+      <h4>AI Avatar ปิดบังหน้าเจ้าหน้าที่</h4>
+      <p>เจ้าหน้าที่จริงคุยสด ใช้ AI เปลี่ยนหน้าที่แสดงผล</p>
+      <button onclick="go('settings');selectSettingsTab('ai')">ตั้งค่าโหมดวิดีโอคอล</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-topbar">
+      <div class="page-title" id="page-title">หน้าหลัก</div>
+      <div class="search-box"><input type="text" placeholder="🔍 ค้นหา..."></div>
+      <div class="tb-actions">
+        <div style="position:relative">
+          <button class="icon-btn" onclick="toggleNotifPanel()" title="การแจ้งเตือน">📣<span class="badge-dot" id="notif-general-badge" style="display:none">0</span></button>
+          <div id="notif-panel" style="display:none;position:absolute;right:0;top:38px;width:320px;max-height:420px;overflow-y:auto;background:white;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,0.18);z-index:200;padding:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px;border-bottom:1px solid #F1EEFB;margin-bottom:6px">
+              <b style="font-size:13px">การแจ้งเตือน</b>
+              <a style="font-size:11px;color:var(--purple-600);font-weight:700;cursor:pointer" onclick="markAllNotifRead()">อ่านทั้งหมด</a>
+            </div>
+            <div id="notif-panel-list"></div>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="go('tickets')" title="งานแจ้งใหม่">🔔<span class="badge-dot" id="notif-bell-badge" style="display:none">0</span></button>
+        <button class="icon-btn" onclick="go('inbox')" title="ข้อความใหม่">✉️<span class="badge-dot" id="notif-mail-badge" style="display:none">0</span></button>
+        <div class="user-chip" onclick="go('settings')">
+          <div class="u-avatar">👤</div>
+          <div>
+            <div class="u-name">นภัสรา ใจดี</div>
+            <div class="u-role">เจ้าหน้าที่ฝ่ายบริการ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="page" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#6C3CE9">📋</div></div>
+          <div class="st-val">128</div><div class="st-label">งานทั้งหมด</div><div class="st-delta up">▲ เพิ่มขึ้น 12%</div>
+        </div>
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#F59E0B">⏳</div></div>
+          <div class="st-val">45</div><div class="st-label">กำลังดำเนินการ</div><div class="st-delta up">▲ เพิ่มขึ้น 8%</div>
+        </div>
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#22C55E">✅</div></div>
+          <div class="st-val">80</div><div class="st-label">ปิดงานแล้ว</div><div class="st-delta up">▲ เพิ่มขึ้น 15%</div>
+        </div>
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#F0398C">⭐</div></div>
+          <div class="st-val">4.8 / 5</div><div class="st-label">ความพึงพอใจเฉลี่ย</div><div class="st-delta up">จาก 128 รีวิว</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="p-head"><h3>สถิติการแจ้งบริการ (7 วันที่ผ่านมา)</h3><a>ดูทั้งหมด</a></div>
+          <svg viewBox="0 0 560 190" width="100%" height="190" id="dash-chart"></svg>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>ช่องทางการติดต่อ</h3><a onclick="go('channels')">ดูทั้งหมด</a></div>
+          <div class="channel-row"><div class="c-ico" style="background:#6C3CE9">📞</div><div class="c-name">โทรศัพท์</div><div class="c-val">45 งาน</div><span class="c-delta st-delta up">▲10%</span></div>
+          <div class="channel-row"><div class="c-ico" style="background:#F0398C">✉️</div><div class="c-name">อีเมล</div><div class="c-val">28 งาน</div><span class="c-delta st-delta down">▼5%</span></div>
+          <div class="channel-row"><div class="c-ico" style="background:#22C55E">💬</div><div class="c-name">ไลน์</div><div class="c-val">35 งาน</div><span class="c-delta st-delta up">▲15%</span></div>
+          <div class="channel-row"><div class="c-ico" style="background:#3B82F6">🌐</div><div class="c-name">เว็บไซต์</div><div class="c-val">20 งาน</div><span class="c-delta st-delta up">▲8%</span></div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="p-head"><h3>งานที่ต้องดำเนินการ</h3><a onclick="go('tickets')">ดูทั้งหมด</a></div>
+          <table class="data-table">
+            <thead><tr><th>รหัสงาน</th><th>หัวข้อ</th><th>ลูกค้า</th><th>ช่องทาง</th><th>ความเร่งด่วน</th><th>สถานะ</th></tr></thead>
+            <tbody id="dash-ticket-body"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>ประกาศ / ข่าวสาร</h3><a>ดูทั้งหมด</a></div>
+          <div class="dash-ann"><div class="a-ico">📢</div><div><h5>แจ้งปรับปรุงระบบชั่วคราว</h5><p>25 พ.ค. 2569 เวลา 00:00 - 02:00 น.</p></div></div>
+          <div class="dash-ann"><div class="a-ico">🎁</div><div><h5>แบบประเมินความพึงพอใจ</h5><p>ขอความร่วมมือลูกค้าทำแบบประเมิน</p></div></div>
+          <div class="dash-ann"><div class="a-ico">📄</div><div><h5>คู่มือการใช้งานระบบ</h5><p>เวอร์ชันล่าสุด คลิกเพื่อดูรายละเอียด</p></div></div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="p-head"><h3>เมนูลัด</h3></div>
+          <div class="quick-grid">
+            <button class="quick-tile" onclick="go('tasks')"><div class="q-ico">➕</div><div class="q-label">สร้างงานใหม่</div></button>
+            <button class="quick-tile" onclick="go('customers')"><div class="q-ico">🔍</div><div class="q-label">ค้นหาลูกค้า</div></button>
+            <button class="quick-tile" onclick="go('kb')"><div class="q-ico">📖</div><div class="q-label">คลังความรู้</div></button>
+            <button class="quick-tile" onclick="go('reports')"><div class="q-ico">📈</div><div class="q-label">รายงาน</div></button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>ความพึงพอใจของลูกค้า</h3><a onclick="go('reports')">ดูทั้งหมด</a></div>
+          <div class="sat-score"><div class="big">4.8</div><div class="stars">★★★★★</div><div style="font-size:11px;color:var(--ink-400)">จาก 128 รีวิว</div></div>
+          <div class="sat-row"><span>5 ดาว</span><div class="bar-track"><div class="bar-fill" style="width:75%"></div></div><span>96 (75%)</span></div>
+          <div class="sat-row"><span>4 ดาว</span><div class="bar-track"><div class="bar-fill" style="width:19%"></div></div><span>24 (19%)</span></div>
+          <div class="sat-row"><span>3 ดาว</span><div class="bar-track"><div class="bar-fill" style="width:5%"></div></div><span>6 (5%)</span></div>
+          <div class="sat-row"><span>2 ดาว</span><div class="bar-track"><div class="bar-fill" style="width:1%"></div></div><span>2 (1%)</span></div>
+          <div class="sat-row"><span>1 ดาว</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><span>0 (0%)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INBOX (chat with customers) ============ -->
+    <section class="page" id="page-inbox">
+      <div class="inbox-layout">
+        <div class="inbox-list panel" id="inbox-list"></div>
+        <div class="inbox-chat panel">
+        <div class="inbox-chat-header-row">
+          <div id="inbox-chat-header" class="inbox-chat-header">เลือกลูกค้าทางซ้ายเพื่อเริ่มแชท</div>
+        </div>
+          <div id="inbox-messages" class="inbox-messages"></div>
+          <div class="inbox-input-bar">
+            <button type="button" class="inbox-attach-btn" onclick="document.getElementById('inbox-image-input').click()" title="แนบรูปภาพ" disabled id="inbox-attach-btn">📎</button>
+            <input type="file" id="inbox-image-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
+            <input type="text" id="inbox-text" placeholder="พิมพ์ข้อความตอบลูกค้า..." onkeydown="if(event.key==='Enter')sendInboxMsg()" disabled>
+            <button class="btn" onclick="sendInboxMsg()" id="inbox-send-btn" disabled>ส่ง</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRODUCTS (Lazmall) ============ -->
+    <section class="page" id="page-products">
+      <div class="filter-row">
+        <select id="pr-category-filter" onchange="renderProductsAdmin()">
+          <option value="">ทุกหมวดหมู่</option>
+        </select>
+        <input type="text" id="pr-search" placeholder="ค้นหาสินค้า..." oninput="renderProductsAdmin()">
+        <label class="pr-flash-filter"><input type="checkbox" id="pr-flash-filter" onchange="renderProductsAdmin()"> ⚡ แฟลชเซลเท่านั้น</label>
+        <button class="btn" style="margin-left:auto" onclick="openProductForm()">+ เพิ่มสินค้าใหม่</button>
+      </div>
+      <div class="card-grid" id="products-admin-grid"></div>
+    </section>
+
+    <!-- ============ PRODUCT FORM MODAL ============ -->
+    <div class="modal-overlay" id="product-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3 id="product-form-title">เพิ่มสินค้าใหม่</h3><span style="cursor:pointer" onclick="closeProductForm()">✕</span></div>
+        <input type="hidden" id="pf-id">
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ชื่อสินค้า</label><input id="pf-name" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">รายละเอียด</label><textarea id="pf-desc" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px;min-height:70px;font-family:inherit"></textarea></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ราคา (บาท)</label><input id="pf-price" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ราคาก่อนลด (ไม่บังคับ)</label><input id="pf-compare" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">รูปภาพสินค้า</label>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div id="pf-image-preview" style="width:56px;height:56px;border-radius:10px;background:var(--paper);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:26px;flex-shrink:0">📦</div>
+            <div style="flex:1">
+              <label for="pf-image-file" id="pf-upload-btn" style="display:inline-flex;align-items:center;gap:6px;background:var(--purple-600);color:white;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer">📤 อัปโหลดรูปจากเครื่อง</label>
+              <input type="file" id="pf-image-file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="uploadProductImage(this.files[0])">
+              <div id="pf-upload-status" style="font-size:11px;color:var(--ink-400);margin-top:6px"></div>
+            </div>
+          </div>
+          <input id="pf-image" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="หรือวางลิงก์ URL รูปภาพ" oninput="updateProductImagePreview()">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">จำนวนในสต๊อก</label><input id="pf-stock" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ไอคอนสำรอง (emoji)</label><input id="pf-icon" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="📦" oninput="updateProductImagePreview()"></div>
+        </div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">หมวดหมู่</label><select id="pf-category" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></select></div>
+        <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">สถานะ</label><select id="pf-status" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"><option value="active">แสดงในร้าน</option><option value="hidden">ซ่อน</option></select></div>
+
+        <div class="pf-flash-box">
+          <label class="pf-flash-toggle">
+            <input type="checkbox" id="pf-flash-enable" onchange="toggleFlashFields()">
+            <span>⚡ ตั้งเป็นสินค้าแฟลชเซล (Flash Sale)</span>
+          </label>
+          <div id="pf-flash-fields" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+              <div class="field" style="margin-bottom:0"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ราคาแฟลชเซล (บาท)</label><input id="pf-flash-price" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+              <div class="field" style="margin-bottom:0"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">สิ้นสุดเมื่อ</label><input id="pf-flash-ends" type="datetime-local" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+            </div>
+            <p class="pf-flash-hint">ราคาแฟลชเซลต้องต่ำกว่าราคาปกติ สินค้าจะแสดงในแถบ FLASH SALE หน้าร้านจนกว่าจะถึงเวลาสิ้นสุด</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeProductForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveProduct()" style="flex:1">บันทึก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ STORE ORDERS ============ -->
+    <section class="page" id="page-storeOrders">
+      <div class="filter-row"><input type="text" id="so-search" placeholder="ค้นหาเลขคำสั่งซื้อ/ลูกค้า..." oninput="renderStoreOrders()"></div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>เลขคำสั่งซื้อ</th><th>ลูกค้า</th><th>รายการ</th><th>ยอดรวม</th><th>สถานะ</th><th>การชำระเงิน</th><th>วันที่</th></tr></thead>
+          <tbody id="store-orders-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ CATEGORIES ============ -->
+    <section class="page" id="page-categories">
+      <div class="filter-row"><button class="btn" onclick="openCategoryForm()">+ เพิ่มหมวดหมู่ใหม่</button></div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>ไอคอน</th><th>ชื่อหมวดหมู่</th><th>หมวดหมู่หลัก</th><th>ลำดับ</th><th>จำนวนสินค้า</th><th></th></tr></thead>
+          <tbody id="categories-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ CATEGORY FORM MODAL ============ -->
+    <div class="modal-overlay" id="category-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3 id="category-form-title">เพิ่มหมวดหมู่ใหม่</h3><span style="cursor:pointer" onclick="closeCategoryForm()">✕</span></div>
+        <input type="hidden" id="cf-id">
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ชื่อหมวดหมู่</label><input id="cf-name" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ไอคอน (emoji)</label><input id="cf-icon" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="🛍️"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">หมวดหมู่หลัก (ไม่บังคับ — เว้นว่างถ้าเป็นหมวดหมู่หลักเอง)</label><select id="cf-parent" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></select></div>
+        <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ลำดับการแสดงผล</label><input id="cf-sort" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" value="0"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeCategoryForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveCategory()" style="flex:1">บันทึก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ REVIEWS ============ -->
+    <section class="page" id="page-reviews">
+      <div class="filter-row"><input type="text" id="rv-search" placeholder="ค้นหาสินค้า/ลูกค้า..." oninput="renderReviewsAdmin()"></div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>สินค้า</th><th>ลูกค้า</th><th>คะแนน</th><th>ความคิดเห็น</th><th>วันที่</th><th></th></tr></thead>
+          <tbody id="reviews-admin-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ MARKETING (Coupons / Store Notifications / Referrals) ============ -->
+    <section class="page" id="page-marketing">
+      <div class="settings-grid">
+        <div class="settings-tabs" id="marketing-tabs">
+          <div class="settings-tab active" data-tab="coupons">คูปองส่วนลด</div>
+          <div class="settings-tab" data-tab="flashSale">⚡ แฟลชเซล</div>
+          <div class="settings-tab" data-tab="notifications">แจ้งเตือนร้านค้า</div>
+          <div class="settings-tab" data-tab="referrals">โปรแกรมแนะนำเพื่อน</div>
+        </div>
+        <div class="panel" id="marketing-content"></div>
+      </div>
+    </section>
+
+    <!-- ============ COUPON FORM MODAL ============ -->
+    <div class="modal-overlay" id="coupon-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3>เพิ่มคูปองใหม่</h3><span style="cursor:pointer" onclick="closeCouponForm()">✕</span></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">โค้ดคูปอง</label><input id="cpf-code" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px;text-transform:uppercase" placeholder="เช่น SALE100"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ประเภทส่วนลด</label><select id="cpf-type" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"><option value="fixed">จำนวนเงินคงที่ (บาท)</option><option value="percent">เปอร์เซ็นต์ (%)</option></select></div>
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">มูลค่าส่วนลด</label><input id="cpf-value" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ยอดซื้อขั้นต่ำ (บาท)</label><input id="cpf-min" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" value="0"></div>
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ส่วนลดสูงสุด (ไม่บังคับ)</label><input id="cpf-max" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">จำกัดจำนวนใช้ (ไม่บังคับ)</label><input id="cpf-limit" type="number" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+          <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">วันหมดอายุ</label><input id="cpf-expires" type="date" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeCouponForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveCoupon()" style="flex:1">สร้างคูปอง</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ STORE NOTIFICATION FORM MODAL ============ -->
+    <div class="modal-overlay" id="notif-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3>สร้างการแจ้งเตือนร้านค้า</h3><span style="cursor:pointer" onclick="closeNotifForm()">✕</span></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ไอคอน (emoji)</label><input id="ntf-icon" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="🛍️" value="🛍️"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">หัวข้อ</label><input id="ntf-title" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">เนื้อหา</label><textarea id="ntf-body" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px;min-height:80px;font-family:inherit"></textarea></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeNotifForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveNotif()" style="flex:1">ส่งแจ้งเตือน</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TICKETS ============ -->
+    <section class="page" id="page-tickets">
+      <div class="filter-row">
+        <select id="tk-status-filter" onchange="renderTickets()">
+          <option value="">ทุกสถานะ</option>
+          <option>รอดำเนินการ</option>
+          <option>กำลังดำเนินการ</option>
+          <option>เสร็จสิ้น</option>
+        </select>
+        <select id="tk-channel-filter" onchange="renderTickets()">
+          <option value="">ทุกช่องทาง</option>
+          <option>โทรศัพท์</option><option>อีเมล</option><option>ไลน์</option><option>เว็บไซต์</option>
+        </select>
+        <input type="text" id="tk-search" placeholder="ค้นหารหัสงาน/ลูกค้า..." oninput="renderTickets()">
+        <button class="btn" style="margin-left:auto" onclick="addTicket()">+ สร้างงานใหม่</button>
+      </div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>รหัสงาน</th><th>หัวข้อ</th><th>ลูกค้า</th><th>ช่องทาง</th><th>ความเร่งด่วน</th><th>สถานะ</th><th>จัดการ</th><th>อัปเดตล่าสุด</th></tr></thead>
+          <tbody id="tickets-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ TASKS (Kanban) ============ -->
+    <section class="page" id="page-tasks">
+      <div class="filter-row"><button class="btn" onclick="addTicket()">+ เพิ่มงานใหม่</button></div>
+      <div class="kanban">
+        <div class="kanban-col"><h4>รอดำเนินการ <span id="kcount-wait"></span></h4><div id="kcol-wait"></div></div>
+        <div class="kanban-col"><h4>กำลังดำเนินการ <span id="kcount-progress"></span></h4><div id="kcol-progress"></div></div>
+        <div class="kanban-col"><h4>เสร็จสิ้น <span id="kcount-done"></span></h4><div id="kcol-done"></div></div>
+      </div>
+    </section>
+
+    <!-- ============ CUSTOMERS ============ -->
+    <section class="page" id="page-customers">
+      <div class="filter-row">
+        <input type="text" id="cu-search" placeholder="ค้นหาลูกค้า..." oninput="renderCustomers()">
+        <button class="btn" onclick="openCustomerForm()">+ เพิ่มลูกค้าใหม่</button>
+      </div>
+      <div class="card-grid" id="customers-grid"></div>
+    </section>
+
+    <!-- ============ FINANCE MANAGEMENT (บริหารการเงิน) ============ -->
+    <section class="page" id="page-finance">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#6C3CE9">💰</div></div>
+          <div class="st-val" id="fin-total-balance">฿0</div><div class="st-label">ยอดเงินคงเหลือรวมทั้งระบบ</div>
+        </div>
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#22C55E">✅</div></div>
+          <div class="st-val" id="fin-active-count">0</div><div class="st-label">บัญชีลูกค้าปกติ</div>
+        </div>
+        <div class="stat-card">
+          <div class="st-top"><div class="st-ico" style="background:#EF4444">🧊</div></div>
+          <div class="st-val" id="fin-frozen-count">0</div><div class="st-label">บัญชีที่แช่แข็ง</div>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <select id="fin-status-filter" onchange="renderFinance()">
+          <option value="">ทุกสถานะบัญชี</option>
+          <option value="ปกติ">ปกติ</option>
+          <option value="แช่แข็ง">แช่แข็ง</option>
+        </select>
+        <input type="text" id="fin-search" placeholder="ค้นหาลูกค้า (ชื่อ/เบอร์โทร)..." oninput="renderFinance()">
+      </div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>ลูกค้า</th><th>เบอร์โทร</th><th>ยอดเงินคงเหลือ</th><th>สถานะบัญชี</th><th>จัดการ</th></tr></thead>
+          <tbody id="finance-body"></tbody>
+        </table>
+      </div>
+
+      <!-- โปรแกรมแนะนำเพื่อน — จัดการยอดโบนัส + ดูสถิติ ได้จากในหน้าบริหารการเงินนี้เลย -->
+      <div class="panel" style="margin-top:16px">
+        <div class="p-head"><h3>🎁 โปรแกรมแนะนำเพื่อน</h3></div>
+        <p style="font-size:12px;color:var(--ink-400);margin:0 0 16px">จำนวนเงินที่ลูกค้าได้รับเข้ากระเป๋าเงินทันทีเมื่อเพื่อนที่ใช้รหัสแนะนำสมัครสมาชิกสำเร็จ — แก้ไขแล้วมีผลทันทีกับลูกค้าใหม่ทุกคน และลูกค้าจะเห็นยอดอัปเดตที่หน้าโปรไฟล์แบบเรียลไทม์</p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:22px">
+          <div class="field" style="max-width:220px">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ยอดโบนัส (บาท) ต่อการแนะนำสำเร็จ 1 คน</label>
+            <input id="fin-referral-reward" type="number" min="0" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px">
+          </div>
+          <button class="btn" onclick="saveFinanceReferralReward()">บันทึก</button>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:22px">
+          <div class="stat-card"><div class="st-val" id="fin-referral-total-count">0</div><div class="st-label">จำนวนการแนะนำทั้งหมด</div></div>
+          <div class="stat-card"><div class="st-val" id="fin-referral-total-paid">฿0</div><div class="st-label">รางวัลที่จ่ายไปทั้งหมด</div></div>
+        </div>
+
+        <div class="p-head"><h3>ผู้แนะนำยอดนิยม</h3></div>
+        <table class="data-table">
+          <thead><tr><th>ชื่อ</th><th>รหัสแนะนำ</th><th>จำนวนเพื่อน</th><th>รางวัลที่ได้รับ</th></tr></thead>
+          <tbody id="fin-referral-top-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Inline account detail panel — opens directly on this page (no modal) when
+           "💰 จัดการยอดเงิน" is clicked on a row above. -->
+      <div class="panel" id="fin-detail-panel" style="display:none;margin-top:16px">
+        <div class="p-head">
+          <h3 id="fin-detail-name">-</h3>
+          <span style="cursor:pointer" onclick="closeFinanceDetail()">✕</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--ink-400)">ยอดเงินคงเหลือ</div>
+            <div id="fin-detail-balance" style="font-size:24px;font-weight:800;color:var(--purple-600)">฿0</div>
+          </div>
+          <div style="text-align:right">
+            <div style="margin-bottom:6px"><span id="fin-detail-status-badge" class="status-chip2 st-done">✅ ปกติ</span></div>
+            <button id="fin-detail-status-toggle-btn" class="btn-outline btn-sm" onclick="toggleFinanceCustomerStatus()">🧊 แช่แข็งบัญชี</button>
+          </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--ink-600);margin-bottom:8px">ปรับยอดเงิน</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <select id="fin-detail-direction" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+            <option value="credit">➕ เติมยอดเข้าบัญชี</option>
+            <option value="debit">➖ หักยอดออกจากบัญชี</option>
+          </select>
+          <select id="fin-detail-category" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+            <option value="เติมเงิน">เติมเงิน</option>
+            <option value="ค่าคอมมิชชั่น">ค่าคอมมิชชั่น</option>
+            <option value="โบนัส">โบนัส</option>
+            <option value="หักยอดเงิน">หักยอดเงิน</option>
+            <option value="ปรับปรุงยอด">ปรับปรุงยอด (อื่นๆ)</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-bottom:10px">
+          <input id="fin-detail-amount" type="number" min="1" placeholder="จำนวนเงิน (บาท)" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+          <input id="fin-detail-note" type="text" placeholder="หมายเหตุ (ไม่บังคับ)" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+        </div>
+        <div id="fin-detail-error" style="display:none;color:var(--danger);font-size:12px;font-weight:600;margin-bottom:10px"></div>
+        <div style="display:flex;gap:10px;margin-bottom:18px">
+          <button class="btn" style="flex:1" onclick="submitFinanceWalletAdjust()">บันทึกรายการปรับยอด</button>
+          <button class="btn-outline" onclick="openCustomerForm(currentFinanceCustomer && currentFinanceCustomer.id)">✎ แก้ไขข้อมูลส่วนตัว</button>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--ink-600);margin-bottom:8px">ประวัติรายการล่าสุด</div>
+        <div id="fin-detail-tx-list" style="max-height:260px;overflow-y:auto"></div>
+      </div>
+    </section>
+
+    <!-- ============ CUSTOMER FORM MODAL ============ -->
+    <div class="modal-overlay" id="customer-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3 id="customer-form-title">เพิ่มลูกค้าใหม่</h3><span style="cursor:pointer" onclick="closeCustomerForm()">✕</span></div>
+        <input type="hidden" id="cuf-id">
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ชื่อ-นามสกุล</label><input id="cuf-name" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">เบอร์โทร</label><input id="cuf-phone" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px">ชื่อผู้ใช้ (เข้าสู่ระบบ)</label><input id="cuf-username" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:6px" id="cuf-password-label">รหัสผ่าน</label><input id="cuf-password" type="password" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="อย่างน้อย 6 ตัวอักษร"></div>
+        <div id="cuf-error" style="display:none;color:var(--danger);font-size:12px;font-weight:600;margin:-8px 0 12px"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeCustomerForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveCustomer()" style="flex:1">บันทึก</button>
+        </div>
+
+        <!-- Wallet balance + status + adjustment — only shown when editing an existing customer -->
+        <div id="cuf-wallet-section" style="display:none;margin-top:20px;padding-top:18px;border-top:1.5px dashed #E3DEF7">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--ink-400)">ยอดเงินคงเหลือ</div>
+              <div id="cuf-wallet-balance" style="font-size:22px;font-weight:800;color:var(--purple-600)">฿0</div>
+            </div>
+            <div style="text-align:right">
+              <div style="margin-bottom:6px"><span id="cuf-status-badge" class="status-chip2 st-done">✅ ปกติ</span></div>
+              <button id="cuf-status-toggle-btn" class="btn-outline btn-sm" onclick="toggleCustomerStatus()">🧊 แช่แข็งบัญชี</button>
+            </div>
+          </div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--ink-600);margin-bottom:8px">ปรับยอดเงิน</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <select id="cuf-wallet-direction" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+              <option value="credit">➕ เติมยอดเข้าบัญชี</option>
+              <option value="debit">➖ หักยอดออกจากบัญชี</option>
+            </select>
+            <select id="cuf-wallet-category" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+              <option value="เติมเงิน">เติมเงิน</option>
+              <option value="ค่าคอมมิชชั่น">ค่าคอมมิชชั่น</option>
+              <option value="โบนัส">โบนัส</option>
+              <option value="หักยอดเงิน">หักยอดเงิน</option>
+              <option value="ปรับปรุงยอด">ปรับปรุงยอด (อื่นๆ)</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-bottom:10px">
+            <input id="cuf-wallet-amount" type="number" min="1" placeholder="จำนวนเงิน (บาท)" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+            <input id="cuf-wallet-note" type="text" placeholder="หมายเหตุ (ไม่บังคับ)" style="border:1.5px solid #E3DEF7;border-radius:10px;padding:9px 10px;font-size:12.5px">
+          </div>
+          <div id="cuf-wallet-error" style="display:none;color:var(--danger);font-size:12px;font-weight:600;margin-bottom:10px"></div>
+          <button class="btn" style="width:100%;margin-bottom:16px" onclick="submitWalletAdjust()">บันทึกรายการปรับยอด</button>
+
+          <div style="font-size:12px;font-weight:700;color:var(--ink-600);margin-bottom:8px">ประวัติรายการล่าสุด</div>
+          <div id="cuf-wallet-tx-list" style="max-height:180px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CHANNELS ============ -->
+    <section class="page" id="page-channels">
+      <div class="panel">
+        <div class="p-head"><h3>สรุปช่องทางการติดต่อ (7 วัน)</h3></div>
+        <div class="channel-row"><div class="c-ico" style="background:#6C3CE9">📞</div><div class="c-name">โทรศัพท์</div><div class="c-val">45 งาน</div><span class="c-delta st-delta up">▲10%</span></div>
+        <div class="channel-row"><div class="c-ico" style="background:#F0398C">✉️</div><div class="c-name">อีเมล</div><div class="c-val">28 งาน</div><span class="c-delta st-delta down">▼5%</span></div>
+        <div class="channel-row"><div class="c-ico" style="background:#22C55E">💬</div><div class="c-name">ไลน์</div><div class="c-val">35 งาน</div><span class="c-delta st-delta up">▲15%</span></div>
+        <div class="channel-row"><div class="c-ico" style="background:#3B82F6">🌐</div><div class="c-name">เว็บไซต์</div><div class="c-val">20 งาน</div><span class="c-delta st-delta up">▲8%</span></div>
+        <div class="channel-row"><div class="c-ico" style="background:#7C5CFC">🤖</div><div class="c-name">AI Avatar Call (PWA)</div><div class="c-val">12 งาน</div><span class="c-delta st-delta up">▲ใหม่</span></div>
+      </div>
+    </section>
+
+    <!-- ============ KNOWLEDGE BASE (admin) ============ -->
+    <section class="page" id="page-kb">
+      <div class="filter-row"><button class="btn" onclick="addKbArticle()">+ เพิ่มบทความ</button></div>
+      <div class="card-grid" id="kbadm-grid"></div>
+    </section>
+
+    <!-- ============ REPORTS ============ -->
+    <section class="page" id="page-reports">
+      <div class="dash-grid">
+        <div class="panel">
+          <div class="p-head"><h3>แนวโน้มงานแจ้งบริการรายเดือน</h3></div>
+          <svg viewBox="0 0 560 190" width="100%" height="190" id="report-chart"></svg>
+        </div>
+        <div class="panel">
+          <div class="p-head"><h3>สรุปประสิทธิภาพ</h3></div>
+          <div class="sat-row"><span>เวลาตอบกลับเฉลี่ย</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span>3.2 นาที</span></div>
+          <div class="sat-row"><span>อัตราปิดงานสำเร็จ</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><span>88%</span></div>
+          <div class="sat-row"><span>อัตราการใช้ AI Avatar</span><div class="bar-track"><div class="bar-fill" style="width:34%"></div></div><span>34%</span></div>
+          <div class="sat-row"><span>ความพึงพอใจเฉลี่ย</span><div class="bar-track"><div class="bar-fill" style="width:96%"></div></div><span>4.8 / 5</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="settings-tabs" id="settings-tabs">
+          <div class="settings-tab active" data-tab="profile">โปรไฟล์ผู้ดูแลระบบ</div>
+          <div class="settings-tab" data-tab="branding">แบรนด์ & การแสดงผล</div>
+          <div class="settings-tab" data-tab="homepage">หน้าแรก</div>
+          <div class="settings-tab" data-tab="customer-profile">หน้าโปรไฟล์ลูกค้า</div>
+          <div class="settings-tab" data-tab="membership">สมาชิก VIP & แนะนำเพื่อน</div>
+          <div class="settings-tab" data-tab="social">Social Login</div>
+          <div class="settings-tab" data-tab="team">ทีมงาน/สิทธิ์การใช้งาน</div>
+          <div class="settings-tab" data-tab="ai">AI Avatar Call</div>
+          <div class="settings-tab" data-tab="notify">การแจ้งเตือน</div>
+          <div class="settings-tab" data-tab="pwa">PWA / แอปมือถือ</div>
+        </div>
+        <div class="panel" id="settings-content"></div>
+      </div>
+    </section>
+    <!-- ============ TEAM FORM MODAL (ทีมงาน/สิทธิ์การใช้งาน) ============ -->
+    <div class="modal-overlay" id="team-form-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="p-head"><h3 id="team-form-title">เพิ่มทีมงานใหม่</h3><span style="cursor:pointer" onclick="closeTeamForm()">✕</span></div>
+        <div id="tf-error" style="display:none;color:var(--danger);font-size:12px;font-weight:600;margin:-8px 0 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px">ชื่อ</label><input id="tf-name" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px">ชื่อผู้ใช้ (username)</label><input id="tf-username" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div class="field" style="margin-bottom:12px"><label id="tf-password-label" style="font-size:12px;font-weight:700;display:block;margin-bottom:5px">รหัสผ่าน</label><input id="tf-password" type="password" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="field"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px">เบอร์โทร</label><input id="tf-phone" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px"></div>
+          <div class="field"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px">ตำแหน่ง</label><input id="tf-position" style="width:100%;border:1.5px solid #E3DEF7;border-radius:10px;padding:10px 12px" placeholder="เช่น เจ้าหน้าที่ฝ่ายบริการ"></div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--ink-600);margin-bottom:6px">สิทธิ์เข้าถึงหน้าต่างๆ</div>
+        <p id="tf-owner-note" style="display:none;font-size:11px;color:var(--ink-400);margin:0 0 8px">บัญชีเจ้าของร้านเข้าถึงได้ทุกส่วนเสมอ แก้ไขไม่ได้</p>
+        <div id="tf-permissions" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;max-height:220px;overflow-y:auto;border:1.5px solid #E3DEF7;border-radius:10px;padding:8px 12px;margin-bottom:18px"></div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" onclick="closeTeamForm()" style="flex:1">ยกเลิก</button>
+          <button class="btn" onclick="saveTeamMember()" style="flex:1">บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-a" id="toast-a"></div>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="config.js"></script>
+<script src="avatar-renderer.js"></script>
+<script src="app.js?v=20260808h"></script>
+</body>
+</html>

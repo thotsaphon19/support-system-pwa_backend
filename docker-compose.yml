@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: support-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-long-random-string}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required — set it in your .env file to a Postgres connection string (a free Neon project works great)}
+      - SERVE_FRONTENDS=false
+      - TURN_URL=${TURN_URL:-}
+      - TURN_SECRET=${TURN_SECRET:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@example.com}
+    # No local volume needed anymore — all data (including uploaded images) lives in
+    # Postgres (DATABASE_URL, e.g. Neon), not on local disk.
+    # No need to run seed.js separately anymore — server.js seeds automatically
+    # on startup (safe to run repeatedly). Falls back to the Dockerfile's default
+    # CMD ("node server.js") by simply not overriding it here.
+
+  # Self-hosted TURN server for WebRTC calls behind strict NATs/firewalls. Optional —
+  # if you leave TURN_URL/TURN_SECRET blank, calls just use STUN only. Uncomment and
+  # set TURN_URL=turn:<your-server-ip>:3478 + TURN_SECRET to match static-auth-secret
+  # in turnserver.conf to enable it.
+  turn:
+    image: coturn/coturn:latest
+    container_name: support-turn
+    restart: unless-stopped
+    network_mode: host   # coturn needs host networking to relay the full UDP port range
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+
+  # Simple static file servers for the two PWAs. In production you would more
+  # commonly put these behind Nginx/Caddy (see nginx.conf.example) or a static
+  # host/CDN (Netlify, Vercel, S3+CloudFront, etc).
+  customer-app:
+    image: nginx:alpine
+    container_name: support-customer-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./customer:/usr/share/nginx/html:ro
+
+  admin-app:
+    image: nginx:alpine
+    container_name: support-admin-app
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./admin:/usr/share/nginx/html:ro
